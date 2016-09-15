@@ -164,14 +164,6 @@ def move_to(pos_x, pos_y, pos_z, ornt_w, ornt_x, ornt_y, ornt_z):
     # pub.publish(pose_stamped)
 
 
-# TODO to be completedd
-# publishes goal on move_base/goal using SimpleActionClient
-# inputs: position x, y, z, orientation w, x, y, z
-def frontier_exploration_publish_points():
-    # Simple Action Client
-    sac = actionlib.SimpleActionClient((robot_namespace + 'move_base'), ExploreTaskAction)
-
-
 # States Declaration
 
 # define Detect state
