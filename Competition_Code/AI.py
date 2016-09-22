@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Competition_Code, 9/15/16, Sajad Azami, Taher Ahmadi"""
 __author__ = 'sajjadaazami@gmail.com (Sajad Azami), 14taher@gmail.com (Taher Ahmadi)'
 
@@ -12,8 +14,7 @@ import smach
 import smach_ros
 import tf
 from actionlib_msgs.msg import GoalStatusArray
-from behaviour.msg import *
-from human_detector.msg import *
+from behaviour_smach.msg import *
 from move_base_msgs.msg import *
 from nav_msgs.msg import OccupancyGrid
 
@@ -67,28 +68,28 @@ def get_current_direction():
 # random goal generator(Use NE, NW, SW and SW for directions)
 def get_random_goal(exp_type):
     if exp_type == 'NW':  # NW
-        x = random.uniform(-5.0, 0)
-        y = random.uniform(0, 5.0)
+        x = random.uniform(-50.0, 0)
+        y = random.uniform(0, 50.0)
         w = 1
         z = 1
     elif exp_type == 'NE':  # NE
-        x = random.uniform(0.0, 5.0)
-        y = random.uniform(0.0, 5.0)
+        x = random.uniform(0.0, 50.0)
+        y = random.uniform(0.0, 50.0)
         w = 1
         z = 1
     elif exp_type == 'SW':  # SW
-        x = random.uniform(-5.0, 0)
-        y = random.uniform(-5.0, 0)
+        x = random.uniform(-50.0, 0)
+        y = random.uniform(-50.0, 0)
         w = 1
         z = 1
     elif exp_type == 'SE':  # SE
-        x = random.uniform(0, 5.0)
-        y = random.uniform(-5.0, 0)
+        x = random.uniform(0, 50.0)
+        y = random.uniform(-50.0, 0)
         w = 1
         z = 1
     else:
-        x = random.uniform(-5.0, 5.0)
-        y = random.uniform(-5.0, 5.0)
+        x = random.uniform(-50.0, 50.0)
+        y = random.uniform(-50.0, 50.0)
         w = 1
         z = 1
     return [x, y, 0, w, 0, 0, z]
@@ -101,8 +102,9 @@ def callback_goal_status(data):
 
 
 # subscriber method from /move_base/status
-def listener_goal_status():
-    rospy.Subscriber((robot_namespace + "move_base/status"), GoalStatusArray, callback_goal_status)
+def get_current_goal_status():
+    rospy.Subscriber((robot_namespace + "/move_base/status"), GoalStatusArray, callback_goal_status)
+    return current_goal_status
 
 
 # subscriber method callback from /move_base/global_costmap/costmap
@@ -120,7 +122,7 @@ def listener_global_costmap():
 # inputs: position x, y, z, orientation w, x, y, z
 def move_to(pos_x, pos_y, pos_z, ornt_w, ornt_x, ornt_y, ornt_z):
     # Simple Action Client
-    sac = actionlib.SimpleActionClient((robot_namespace + 'move_base'), MoveBaseAction)
+    sac = actionlib.SimpleActionClient((robot_namespace + '/move_base'), MoveBaseAction)
 
     # create goal
     goal = MoveBaseGoal()
@@ -130,7 +132,7 @@ def move_to(pos_x, pos_y, pos_z, ornt_w, ornt_x, ornt_y, ornt_z):
     goal.target_pose.pose.position.y = pos_y
     goal.target_pose.pose.orientation.w = ornt_w
     goal.target_pose.pose.orientation.z = ornt_z
-    goal.target_pose.header.frame_id = (robot_namespace + 'odom')
+    goal.target_pose.header.frame_id = (robot_namespace + '/odom')
     goal.target_pose.header.stamp = rospy.Time.now()
 
     # start listener
@@ -142,27 +144,6 @@ def move_to(pos_x, pos_y, pos_z, ornt_w, ornt_x, ornt_y, ornt_z):
     # finish
     # sac.wait_for_result()
 
-    # print result
-    # goal_result = sac.get_result()
-
-    # Publisher on move_base_simple/goal
-    # header = Header()
-    # header.frame_id = 'map'
-    # header.stamp = rospy.Time.now()
-    #
-    # pose = Pose()
-    # pose.position.x = pos_x
-    # pose.position.y = pos_y
-    # pose.orientation.w = ornt_w
-    # pose.orientation.z = ornt_z
-    #
-    # pose_stamped = PoseStamped()
-    # pose_stamped.header = header
-    # pose_stamped.pose = pose
-    # pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
-    # rate = rospy.Rate(100)  # 100hz
-    # pub.publish(pose_stamped)
-
 
 # States Declaration
 
@@ -170,34 +151,21 @@ def move_to(pos_x, pos_y, pos_z, ornt_w, ornt_x, ornt_y, ornt_z):
 class Detect(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['goalReached', 'goalCancelled'])
-        self.mutex = threading.Lock()
-        self.found_recieved = False
-        self.subscriber = rospy.Subscriber((robot_namespace + "/human_detection_result"), detectedobjectsMsg,
-                                           self.callback)
-        # self.subscriber = rospy.Subscriber("/temp", uint8, self.callback)
+        # self.mutex = threading.Lock()
+        # self.found_received = False
 
-    def callback(self, msg):
-        self.mutex.acquire()
-        if msg.found == 1:
-            self.found_recieved = True
-        self.mutex.release()
-
+    # def callback(self, msg):
+    #     self.mutex.acquire()
+    #     if msg.found == 1:
+    #         self.found_received = True
+    #     self.mutex.release()
+    #
     def execute(self, userdata):
         rospy.loginfo('Executing WaitForVictim')
-        # global current_goal_status
-        # listener_goal_status()
-        # # 3:Goal Reached
-        # while current_goal_status != 3:
-        #     self.mutex.acquire()
-        #     listener_goal_status()
-        #     if self.found_recieved:
-        #         # found recieved
-        #         return 'victimSpotted'
-        #     self.mutex.release()
-        #     time.sleep(.1)
-        # # we didn't spotted victim in the 3 sec
-        # return 'victimNotSpotted'
-        time.sleep(10)
+        while get_current_goal_status() == 1:
+            rospy.loginfo('Detecting')
+            rospy.loginfo(get_current_goal_status())
+            time.sleep(1)
         return 'goalReached'
 
 
@@ -210,14 +178,18 @@ class Explore(smach.State):
     def execute(self, userdata):
         rospy.loginfo('Executing state Explore')
         # TODO add to Documentation : Goal format is goal_list_temp = [x, y, 0, w, 0, 0, x]
+        # current_position = get_current_position()  # current translation of robot in an array[][]
 
-        current_position = get_current_position()  # current translation of robot in an array[][]
-
-        goal_temp = get_random_goal(2)  # get random goal
+        goal_temp = get_random_goal(5)  # get random goal
         goals_list.append(goal_temp)  # add goal to goal list(for further uses)
-        move_to(goal_temp[0] + current_position[0], goal_temp[1] + current_position[1], goal_temp[2],
+        # move_to(goal_temp[0] + current_position[0], goal_temp[1] + current_position[1], goal_temp[2],
+        #         goal_temp[3], goal_temp[4], goal_temp[5], goal_temp[6], )
+        move_to(goal_temp[0], goal_temp[1], goal_temp[2],
                 goal_temp[3], goal_temp[4], goal_temp[5], goal_temp[6], )
-        return 'goalPublished'
+        if get_current_goal_status() == 1:
+            return 'goalPublished'
+        else:
+            return 'goalNotPublished'
 
 
 # Main Function
