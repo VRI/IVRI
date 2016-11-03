@@ -7,4 +7,4 @@ Cognitive Robotics Lab of CS department of Amirkabir University of Technology.
 
 # Note
 We are going to release documentations and competition information soon.
-Stay in touch. [SOSVR Team](http://www.sosvr.github.io)
+Stay in touch. [SOSVR Team](http://sosvr.github.io)
